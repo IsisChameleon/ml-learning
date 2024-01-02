@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "ml-learning"
+version = "0.1.0"
+description = "Experiments in ML and LLM usage"
+authors = ["IsisChameleon <12711084+IsisChameleon@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+llama-index = "^0.9.24"
+python-dotenv = "^1.0.0"
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.28.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
