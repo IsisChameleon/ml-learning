@@ -20,3 +20,6 @@ src/notebooks/storage_graph/index_store.json
 src/notebooks/storage_graph/vector_store.json
 data/aws/
 .aider*
+paper-qa/
+src/phages/data/
+     src/phages/data/
