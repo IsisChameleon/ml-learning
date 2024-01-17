@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from pydantic import validator, ValidationError
 from typing import List, Union, Any
 from pydantic import FilePath, HttpUrl
 from typing import List
@@ -17,7 +18,23 @@ from shutil import copy2
 from urllib.parse import urlparse
 import os
 
-class SourceType(str, Enum):
+def is_url(value: str) -> bool:
+    return urlparse(value).scheme in ('http', 'https')
+
+def is_file(value: str) -> bool:
+    return os.path.exists(value)
+
+class SourceValidator:
+    @classmethod
+    def validate(cls, value: Union[Path, str]) -> str:
+        if isinstance(value, Path) or (isinstance(value, str) and is_file(value)):
+            return str(value)
+        elif isinstance(value, str) and is_url(value):
+            return value
+        raise ValueError("The source must be a valid URL or an existing local file path.")
+import os
+
+class SourceType(str, Union[Path, str]):
     LOCAL_FILE = "local_file"
     URL = "url"
 
@@ -36,7 +53,7 @@ class Library(BaseModel):
 
     def add(self, source: Union[Path, str]) -> None:
         # Load configuration
-        config = toml.load("config.toml")  # This assumes that 'config.toml' is in the current working directory
+        config = toml.load("config.toml")
         data_dir = config["paths"]["DATA"]
         storage_dir = config["paths"]["PERSIST"]
         os.makedirs(data_dir, exist_ok=True)
@@ -47,7 +64,7 @@ class Library(BaseModel):
             source_type = SourceType.get_source_type(str(source))
             if source_type == SourceType.URL:
                 # Source is a URL, download the file and save it locally
-                local_file_name = os.path.join(storage_dir, os.path.basename(urlparse(source).path))
+                local_file_name = os.path.join(data_dir, os.path.basename(urlparse(source).path))
                 with requests.get(source, stream=True) as r:
                     r.raise_for_status()
                     with open(local_file_name, 'wb') as f:
