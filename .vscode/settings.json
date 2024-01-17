@@ -2,9 +2,10 @@
     "python.defaultInterpreterPath": "/workspaces/ml-learning/.venv/bin/python",
     "python.terminal.activateEnvInCurrentTerminal": true,
     "python.analysis.extraPaths": [
-        "./src/modules",
+        "./src/phages/modules",
         "/workspaces/ml-learning/src/phages/modules",
-        "/workspaces/ml-learning/.venv/lib/python3.11/site-packages"
+        "/workspaces/ml-learning/.venv/lib/python3.11/site-packages",
+        "./src/phages"
     ],
     "python.envFile": "${workspaceFolder}/src/tests/.env",
 

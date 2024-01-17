@@ -23,3 +23,8 @@ data/aws/
 paper-qa/
 src/phages/data/
      src/phages/data/
+src/phages/storage/default__vector_store.json
+src/phages/storage/docstore.json
+src/phages/storage/image__vector_store.json
+src/phages/storage/graph_store.json
+src/phages/storage/index_store.json
