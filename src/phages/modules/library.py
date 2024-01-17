@@ -7,16 +7,20 @@ from llama_index.embeddings import OpenAIEmbedding
 from llama_index.text_splitter import SentenceSplitter
 from llama_index.extractors import TitleExtractor
 from llama_index.ingestion import IngestionPipeline, IngestionCache
+from llama_index.exceptions import LoaderError
 
 class Library(BaseModel):
     documents: List[Document]
 
     def add(self, source: Union[Path, str]) -> None:
-        if isinstance(source, Path):
-            document = load_document_from_path(source)
-        else:
-            document = load_document_from_url(source)
-        self.documents.append(document)
+        try:
+            if isinstance(source, Path):
+                document = load_document_from_path(source)
+            else:
+                document = load_document_from_url(source)
+            self.documents.append(document)
+        except LoaderError as e:
+            print(f"Error loading document: {e}")
 
     def _extract_nodes(self, documents: List[Document]) -> List:
         pipeline = IngestionPipeline(
