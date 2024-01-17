@@ -1,0 +1,3 @@
+[paths]
+DATA = "./data"
+PERSIST = "./storage"
