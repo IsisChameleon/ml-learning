@@ -15,6 +15,20 @@ import os
 import requests
 from shutil import copy2
 from urllib.parse import urlparse
+import os
+
+class SourceType(str, Enum):
+    LOCAL_FILE = "local_file"
+    URL = "url"
+
+    @classmethod
+    def get_source_type(cls, value: str) -> 'SourceType':
+        if os.path.exists(value):
+            return cls.LOCAL_FILE
+        elif urlparse(value).scheme in ('http', 'https'):
+            return cls.URL
+        else:
+            raise ValueError(f"Invalid source type for value: {value}")
 from llama_index import SimpleDirectoryReader
 
 class Library(BaseModel):
@@ -22,7 +36,7 @@ class Library(BaseModel):
 
     def add(self, source: Union[Path, str]) -> None:
         # Load configuration
-        config = toml.load("config.toml")
+        config = toml.load("config.toml")  # This assumes that 'config.toml' is in the current working directory
         data_dir = config["paths"]["DATA"]
         storage_dir = config["paths"]["PERSIST"]
         os.makedirs(data_dir, exist_ok=True)
@@ -30,7 +44,8 @@ class Library(BaseModel):
 
         try:
             # Determine if the source is a URL or a local file
-            if isinstance(source, str) and urlparse(source).scheme in ('http', 'https'):
+            source_type = SourceType.get_source_type(str(source))
+            if source_type == SourceType.URL:
                 # Source is a URL, download the file and save it locally
                 local_file_name = os.path.join(storage_dir, os.path.basename(urlparse(source).path))
                 with requests.get(source, stream=True) as r:
@@ -40,10 +55,8 @@ class Library(BaseModel):
                             f.write(chunk)
                 file_name = local_file_name
             else:
-                # Source is a local file, use it directly
-                file_name = str(source)
-            else:
-                raise ValueError("The source must be a valid URL or an existing local file path.")
+            elif source_type == SourceType.LOCAL_FILE:
+                file_name = str(source)  # Use the local file path directly
 
             # Read the document using SimpleDirectoryReader
             reader = SimpleDirectoryReader(input_files=[file_name])
