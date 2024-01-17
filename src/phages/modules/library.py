@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from pydantic import validator, ValidationError
-from typing import List, Union, Any
-from pydantic import FilePath, HttpUrl
+from typing import List, Union, Any, Callable, Dict, Generator, List, Optional, Type
 from typing import List
 from llama_index.schema import Document
 from llama_index import SimpleDirectoryReader
@@ -14,48 +13,53 @@ from llama_index.extractors import (
     QuestionsAnsweredExtractor,
     TitleExtractor,
     KeywordExtractor,
-    EntityExtractor,
+    EntityExtractor
 )
 from llama_index.ingestion import IngestionPipeline
 import toml
-import os
 import requests
-from shutil import copy2
 from urllib.parse import urlparse
 import os
+import logging
+import mimetypes
+import os
+from datetime import datetime
+from pathlib import Path
 
-def is_url(value: str) -> bool:
-    return urlparse(value).scheme in ('http', 'https')
+from llama_index.readers.base import BaseReader
+from llama_index.readers.file.docs_reader import PDFReader
 
-def is_file(value: str) -> bool:
-    return os.path.exists(value)
+from phages.modules.extractors import get_citation
 
-class SourceValidator:
-    @classmethod
-    def validate(cls, value: Union[Path, str]) -> str:
-        if isinstance(value, Path) or (isinstance(value, str) and is_file(value)):
+
+class FullPDFReader(PDFReader):
+    """Full PDF parser with default full document return."""
+
+    def __init__(self) -> None:
+        """
+        Initialize FullPDFReader with return_full_document set to True by default.
+        """
+        super().__init__(return_full_document=True)
+
+# for SimpleDirectoryReader file_extractor param
+CUSTOM_FILE_READER_CLS: Dict[str, Type[BaseReader]] = {
+    ".pdf": FullPDFReader(),
+}
+
+
+class SourceType(BaseModel):
+    source: Union[Path, str]
+
+    @validator('source', pre=True, always=True)
+    def validate_source(cls, value):
+        if isinstance(value, Path) or (isinstance(value, str) and os.path.exists(value)):
             return str(value)
-        elif isinstance(value, str) and is_url(value):
+        elif isinstance(value, str) and urlparse(value).scheme in ('http', 'https'):
             return value
         raise ValueError("The source must be a valid URL or an existing local file path.")
-import os
-
-class SourceType(str, Union[Path, str]):
-    LOCAL_FILE = "local_file"
-    URL = "url"
-
-    @classmethod
-    def get_source_type(cls, value: str) -> 'SourceType':
-        if os.path.exists(value):
-            return cls.LOCAL_FILE
-        elif urlparse(value).scheme in ('http', 'https'):
-            return cls.URL
-        else:
-            raise ValueError(f"Invalid source type for value: {value}")
-
 
 class Library(BaseModel):
-    documents: List[Document]
+    documents: List[Document] = []
 
     def add(self, source: Union[Path, str]) -> None:
         # Load configuration
@@ -65,31 +69,32 @@ class Library(BaseModel):
         os.makedirs(data_dir, exist_ok=True)
         os.makedirs(storage_dir, exist_ok=True)
 
-        try:
-            file_name = self._get_file(source, data_dir)
+        file_name = self._get_file(source, data_dir)
 
-            # Read the document using SimpleDirectoryReader
-            reader = SimpleDirectoryReader(input_files=[file_name])
-            new_documents = reader.load_data()
-            self.documents.extend(new_documents)
-        except (ValueError, Exception) as e:
-            print(f"Error handling the document source: {e}")
+        # Read the document using SimpleDirectoryReader
+        reader = SimpleDirectoryReader(input_files=[file_name], file_extractor=CUSTOM_FILE_READER_CLS)
+        new_documents = reader.load_data()
+        print('New documents count:', len(new_documents))
+        for doc in new_documents:
+            print('calling get_citation')
+            citation = get_citation(doc)
+            doc.metadata['citation']=citation
+        self.documents.extend(new_documents)
 
     def _get_file(self, source: Union[Path, str], data_dir: str) -> str:
-        source_type = SourceType.get_source_type(str(source))
-        if source_type == SourceType.URL:
+        validated_source = SourceType(source=source).source  # Validate source using SourceType
+        if urlparse(validated_source).scheme in ('http', 'https'):
             # Source is a URL, download the file and save it locally
-            local_file_name = os.path.join(data_dir, os.path.basename(urlparse(source).path))
-            with requests.get(source, stream=True) as r:
+            local_file_name = os.path.join(data_dir, os.path.basename(urlparse(validated_source).path))
+            with requests.get(validated_source, stream=True) as r:
                 r.raise_for_status()
                 with open(local_file_name, 'wb') as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
             return local_file_name
         else:
-            # source_type == SourceType.LOCAL_FILE
             # Source is a local file, use it directly
-            return str(source)
+            return str(validated_source)
 
     def _extract_nodes(self, documents: List[Document]) -> List:
         pipeline = IngestionPipeline(
