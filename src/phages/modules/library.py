@@ -11,7 +11,9 @@ from llama_index.exceptions import LoaderError
 from llama_index import SimpleDirectoryReader
 import toml
 import os
-import requests
+from shutil import copy2
+from urllib.parse import urlparse
+from llama_index import SimpleDirectoryReader
 
 class Library(BaseModel):
     documents: List[Document]
