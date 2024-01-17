@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import List, Union
+from typing import List, Union, Any
+from pydantic import FilePath, HttpUrl
 from typing import List
 from llama_index.schema import Document
 from llama_index import SimpleDirectoryReader
@@ -38,7 +39,7 @@ class Library(BaseModel):
                         for chunk in r.iter_content(chunk_size=8192):
                             f.write(chunk)
                 file_name = local_file_name
-            elif isinstance(source, (str, Path)) and os.path.exists(source):
+            else:
                 # Source is a local file, use it directly
                 file_name = str(source)
             else:
@@ -48,7 +49,7 @@ class Library(BaseModel):
             reader = SimpleDirectoryReader(input_files=[file_name])
             new_documents = reader.load_data()
             self.documents.extend(new_documents)
-        except Exception as e:
+        except (ValueError, Exception) as e:
             print(f"Error handling the document source: {e}")
 
     def _extract_nodes(self, documents: List[Document]) -> List:
