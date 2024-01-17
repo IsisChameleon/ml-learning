@@ -8,7 +8,6 @@ from llama_index.embeddings import OpenAIEmbedding
 from llama_index.text_splitter import SentenceSplitter
 from llama_index.extractors import TitleExtractor
 from llama_index.ingestion import IngestionPipeline, IngestionCache
-from llama_index.exceptions import LoaderError
 from llama_index import SimpleDirectoryReader
 import toml
 import os
