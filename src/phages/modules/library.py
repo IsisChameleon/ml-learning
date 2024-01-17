@@ -28,25 +28,21 @@ class Library(BaseModel):
         os.makedirs(storage_dir, exist_ok=True)
 
         try:
-            file_name = None
-            if isinstance(source, str):
-                # Assume source is a URL
-                file_name = os.path.join(data_dir, os.path.basename(urlparse(source).path))
-            else:
-                # Download the file and save it locally
+            # Determine if the source is a URL or a local file
+            if isinstance(source, str) and urlparse(source).scheme in ('http', 'https'):
+                # Source is a URL, download the file and save it locally
+                local_file_name = os.path.join(storage_dir, os.path.basename(urlparse(source).path))
                 with requests.get(source, stream=True) as r:
                     r.raise_for_status()
-                    with open(file_name, 'wb') as f:
+                    with open(local_file_name, 'wb') as f:
                         for chunk in r.iter_content(chunk_size=8192):
                             f.write(chunk)
-            elif isinstance(source, Path):
-                # If source is a relative Path, copy to the data directory
-                file_name = os.path.join(data_dir, source.name)
-                if not source.is_absolute():
-                    copy2(source, file_name)
-                else:
-                    # If source is an absolute Path, use it as is
-                    file_name = str(source)
+                file_name = local_file_name
+            elif isinstance(source, (str, Path)) and os.path.exists(source):
+                # Source is a local file, use it directly
+                file_name = str(source)
+            else:
+                raise ValueError("The source must be a valid URL or an existing local file path.")
 
             # Read the document using SimpleDirectoryReader
             reader = SimpleDirectoryReader(input_files=[file_name])
