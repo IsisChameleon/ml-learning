@@ -1,3 +1,5 @@
 [paths]
 DATA = "./data"
-PERSIST = "./storage"
+VECTORSTORE = "./lancedb"
+WEAVIATE_BINARY_PATH = "./weaviate/.cache/weaviate-embedded/"
+WEAVIATE_PERSISTENCE_DATA_PATH = "./weaviate/.local/share/weaviate"

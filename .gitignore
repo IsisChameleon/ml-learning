@@ -28,3 +28,6 @@ src/phages/storage/docstore.json
 src/phages/storage/image__vector_store.json
 src/phages/storage/graph_store.json
 src/phages/storage/index_store.json
+tmp
+weaviate
+lancedb
