@@ -21,4 +21,4 @@ class Answer(BaseModel):
 class CustomNodeWithScore(NodeWithScore):
     """A class to hold the context of a question."""
 
-    throw NotImplementedError
+    raise NotImplementedError
