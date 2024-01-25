@@ -268,27 +268,6 @@ tests = ["pytest (>=3.2.1,!=3.3.0)"]
 typecheck = ["mypy"]
 
 [[package]]
-name = "beautifulsoup4"
-version = "4.12.3"
-description = "Screen-scraping library"
-optional = false
-python-versions = ">=3.6.0"
-files = [
-    {file = "beautifulsoup4-4.12.3-py3-none-any.whl", hash = "sha256:b80878c9f40111313e55da8ba20bdba06d8fa3969fc68304167741bbf9e082ed"},
-    {file = "beautifulsoup4-4.12.3.tar.gz", hash = "sha256:74e3d1928edc070d21748185c46e3fb33490f22f52a3addee9aee0f4f7781051"},
-]
-
-[package.dependencies]
-soupsieve = ">1.2"
-
-[package.extras]
-cchardet = ["cchardet"]
-chardet = ["chardet"]
-charset-normalizer = ["charset-normalizer"]
-html5lib = ["html5lib"]
-lxml = ["lxml"]
-
-[[package]]
 name = "build"
 version = "1.0.3"
 description = "A simple, correct Python build frontend"
@@ -1608,18 +1587,17 @@ tests = ["aiohttp", "duckdb", "pandas (>=1.4)", "polars", "pytest", "pytest-asyn
 
 [[package]]
 name = "llama-index"
-version = "0.9.34"
+version = "0.9.36"
 description = "Interface between LLMs and your data"
 optional = false
 python-versions = ">=3.8.1,<4.0"
 files = [
-    {file = "llama_index-0.9.34-py3-none-any.whl", hash = "sha256:8ced1e0dcdd40929b645e93e9056b7e1700de378d8724a4c05b4fe6b49597e25"},
-    {file = "llama_index-0.9.34.tar.gz", hash = "sha256:152554f4042425875517e35afca4d98641fa5fda79a3f0fe8dd0f7a9783f6d0d"},
+    {file = "llama_index-0.9.36-py3-none-any.whl", hash = "sha256:1d538876e52b391326c787d4e65932821c3138e2f686766714af86cbe69dc7e7"},
+    {file = "llama_index-0.9.36.tar.gz", hash = "sha256:c0470875fdb63809e2e94eb90f5ac82a07af5cd1df43d73574986269c791bb34"},
 ]
 
 [package.dependencies]
 aiohttp = ">=3.8.6,<4.0.0"
-beautifulsoup4 = ">=4.12.2,<5.0.0"
 dataclasses-json = "*"
 deprecated = ">=1.2.9.3"
 fsspec = ">=2023.5.0"
@@ -1639,9 +1617,10 @@ typing-inspect = ">=0.8.0"
 
 [package.extras]
 gradientai = ["gradientai (>=1.4.0)"]
+html = ["beautifulsoup4 (>=4.12.2,<5.0.0)"]
 langchain = ["langchain (>=0.0.303)"]
 local-models = ["optimum[onnxruntime] (>=1.13.2,<2.0.0)", "sentencepiece (>=0.1.99,<0.2.0)", "transformers[torch] (>=4.33.1,<5.0.0)"]
-postgres = ["asyncpg (>=0.28.0,<0.29.0)", "pgvector (>=0.1.0,<0.2.0)", "psycopg-binary (>=3.1.12,<4.0.0)", "psycopg2 (>=2.9.9,<3.0.0)"]
+postgres = ["asyncpg (>=0.28.0,<0.29.0)", "pgvector (>=0.1.0,<0.2.0)", "psycopg2-binary (>=2.9.9,<3.0.0)"]
 query-tools = ["guidance (>=0.0.64,<0.0.65)", "jsonpath-ng (>=1.6.0,<2.0.0)", "lm-format-enforcer (>=0.4.3,<0.5.0)", "rank-bm25 (>=0.2.2,<0.3.0)", "scikit-learn", "spacy (>=3.7.1,<4.0.0)"]
 
 [[package]]
@@ -3311,17 +3290,6 @@ files = [
 ]
 
 [[package]]
-name = "soupsieve"
-version = "2.5"
-description = "A modern CSS selector implementation for Beautiful Soup."
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "soupsieve-2.5-py3-none-any.whl", hash = "sha256:eaa337ff55a1579b6549dc679565eac1e3d000563bcb1c8ab0d0fefbc0c2cdc7"},
-    {file = "soupsieve-2.5.tar.gz", hash = "sha256:5663d5a7b3bfaeee0bc4372e7fc48f9cff4940b3eec54a6451cc5299f1097690"},
-]
-
-[[package]]
 name = "sqlalchemy"
 version = "2.0.25"
 description = "Database Abstraction Library"
@@ -4285,4 +4253,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "b6dd348eb02093ceaf61c7487fe99d12508dacb39bf060ed4763f2f40430fed6"
+content-hash = "7c761fe7ac8d7cbe8205153b51a08d4533a1ef46c3ab1a6108e90cffb0a293e0"

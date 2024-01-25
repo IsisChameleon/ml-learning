@@ -1,6 +1,6 @@
 from pydantic import validator, ValidationError, BaseModel
-from typing import List, Union, Any, Callable, Dict, Generator, List, Optional, Type, Sequence
-from llama_index.schema import Document, BaseNode, TextNode
+from typing import Set, List, Union, Any, Callable, Dict, Generator, List, Optional, Type, Sequence
+from llama_index.schema import Document, BaseNode, NodeWithScore, TextNode
 from llama_index import ServiceContext, SimpleDirectoryReader
 from pathlib import Path
 from llama_index.embeddings import OpenAIEmbedding
@@ -24,15 +24,26 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+import weaviate
+
 from llama_index.readers.base import BaseReader
 from llama_index.readers.file.docs_reader import PDFReader
-from llama_index.vector_stores import ChromaVectorStore
+from llama_index.vector_stores import ChromaVectorStore, WeaviateVectorStore
 from llama_index.indices.vector_store import VectorStoreIndex
-from llama_index.vector_stores import WeaviateVectorStore
-import weaviate
+
 from llama_index.storage.storage_context import StorageContext
+from llama_index.postprocessor import SimilarityPostprocessor
+from llama_index.vector_stores.types import (
+    VectorStoreInfo,
+    MetadataInfo,
+    MetadataFilter,
+    MetadataFilters,
+    FilterCondition,
+    FilterOperator,
+)
 
 from phages.modules.extractors import get_citation
+from phages.modules.answer import Answer
 
 class FullPDFReader(PDFReader):
     """Full PDF parser with default full document return."""
@@ -89,14 +100,19 @@ class Library():
 
 
         # self.chroma_client = chromadb.EphemeralClient()
-        vector_store = WeaviateVectorStore(weaviate_client = client, index_name="Docs", text_key="text")
-        storage_context = StorageContext.from_defaults(vector_store=vector_store)
-        self.docs_index = VectorStoreIndex(
-            nodes=[TextNode(text='hello world')],
+        docs_vector_store = WeaviateVectorStore(weaviate_client = client, index_name="Docs", text_key="text")
+        storage_context = StorageContext.from_defaults(vector_store=docs_vector_store )
+        # self.docs_index = VectorStoreIndex(
+        #     nodes=[TextNode(text='hello world')],
+        #     storage_context = storage_context,
+        #     service_context=ServiceContext.from_defaults(embed_model=OpenAIEmbedding())
+        #     )
+        self.docs_index = VectorStoreIndex.from_vector_store(
+            vector_store=docs_vector_store,
             storage_context = storage_context,
             service_context=ServiceContext.from_defaults(embed_model=OpenAIEmbedding())
             )
-        
+
         vector_store = WeaviateVectorStore(weaviate_client = client, index_name="Nodes", text_key="text")
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
         self.nodes_index = VectorStoreIndex(
@@ -174,3 +190,140 @@ class Library():
         )
         nodes = pipeline.run(documents=documents)
         return nodes
+    
+    async def aquery(
+            self,
+            query: str,
+            k: int = 10, 
+            max_sources: int = 5,
+            answer_length_prompt: str = "about 100 words",
+            marginal_relevance: bool = True,
+            answer: Optional[Answer] = None,
+            doc_filter: Optional[bool] = None,
+        ) -> Answer:
+        """
+        Answer a query.
+
+        Args:
+            query (str): The question to answer
+            k (int, optional): The number of documents to retrieve. Defaults to 10.
+            max_sources (int, optional): How much out of k documents are going to contribute to formulating the final answer. Defaults to 5.
+            length_prompt (str, optional): The prompt for the answer length. Defaults to "about 100 words".
+            marginal_relevance (bool, optional): Whether to use marginal relevance. Defaults to True.
+            answer (Optional[Answer], optional): The Answer object to update. Defaults to None.
+            doc_filter (Optional[bool], optional): Whether to filter documents based on their keys. Defaults to None.
+
+        Returns:
+            Answer: The updated Answer object
+        """
+        if answer is None:
+            answer = Answer(query=query, answer_length=answer_length_prompt)
+
+        if len(answer.contexts) == 0:
+            # If we have more documents than the allowed number of documents to retrieve (k)
+            # then we have to filter out documents
+
+            #TODO: decide on re-ranking inside the adoc_match function ?
+            answer.selected_documents = await self._adoc_match(answer.query)
+
+            answer = await self._aget_evidence(
+                answer,
+                k=k,
+                max_sources=max_sources,
+                marginal_relevance=marginal_relevance
+            )
+
+        return answer
+
+    async def _adoc_match(
+        self,
+        query: str,
+        k: int = 25,
+        rerank: Optional[bool] = None,
+        # get_callbacks: CallbackFactory = lambda x: None,
+    ) -> List[NodeWithScore]:
+
+        # text_qa_template: Optional[BasePromptTemplate] = None,
+        # refine_template: Optional[BasePromptTemplate] = None,
+        # summary_template: Optional[BasePromptTemplate] = None,
+        # simple_template: Optional[BasePromptTemplate] = None,
+
+        # configure retriever (https://docs.llamaindex.ai/en/stable/understanding/querying/querying.html)
+
+        retriever = self.docs_index.as_retriever(
+            similarity_top_k=k, 
+            node_postprocessors=[SimilarityPostprocessor(similarity_cutoff=0.7)])
+        retrieved_nodes = retriever.retrieve(query)
+        if retrieved_nodes is None or len(retrieved_nodes) == 0:
+            return []
+        
+        # llm rerank for post procesing? https://docs.llamaindex.ai/en/stable/api_reference/node_postprocessor.html#llama_index.indices.postprocessor.LLMRerank
+
+        return retrieved_nodes
+    
+    async def _aget_evidence(
+        self,
+        answer: Answer,
+        k: int = 10,  # Number of vectors to retrieve
+        max_sources: int = 5,  # Number of scored contexts to use
+        marginal_relevance: bool = True,
+        detailed_citations: bool = False,
+        summarization: bool = True,
+    ) -> Answer:
+
+        if self.docs_index is None:
+            return answer
+        
+        # NOTE we assume that the nodes index has been already built
+
+        # docs = [ node_with_score.node for node_with_score in answer.selected_documents]
+        # nodes = self._extract_nodes(docs)
+        # self.nodes_index.insert_nodes(nodes)
+
+        if self.nodes_index is None:
+            return answer
+        
+        # Setting up the retriever
+        # -----------------------
+        # Example use of filters: https://docs.llamaindex.ai/en/stable/examples/vector_stores/pinecone_metadata_filter.html
+        filters = []
+        for selected_doc in answer.selected_documents:
+            filters.append(MetadataFilter(key="citation", value=selected_doc.node.metadata["citation"]))
+
+        metadata_filters = None
+        if len(filters) > 0:
+            metadata_filters = MetadataFilters(
+                filters=filters,
+                condition=FilterCondition.OR,
+            ) 
+
+        nodes_retriever = self.nodes_index.as_retriever(
+            similarity_top_k=k, 
+            filters = metadata_filters,
+            node_postprocessors=[SimilarityPostprocessor(similarity_cutoff=0.7)]
+        )
+
+        retrieved_nodes = nodes_retriever.retrieve(answer.query)
+
+        # Node postprocessing
+        # -------------------
+        # Optional summarization of each text chunk
+
+        if not(retrieved_nodes is None or len(retrieved_nodes) == 0):
+            summary_key = self._find_metadata_summary_key(retrieved_nodes[0].node)
+            if summary_key is None and summarization == True:
+                # TODO : add summary for each retrieved_node in the metadata using a node_postprocessor
+                pass
+
+        # Add chunks to the answer context
+        #----------------------------------
+        # TODO: cleanup move answer out of this function and make it return retrieved nodes
+        answer.contexts.extend(retrieved_nodes)
+
+        return answer
+    
+    def _find_metadata_summary_key(self, node: BaseNode) -> Optional[str]:
+        for key in node.metadata.keys():
+            if'summary' in key:
+                return key
+        return None

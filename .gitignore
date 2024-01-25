@@ -31,3 +31,5 @@ src/phages/storage/index_store.json
 tmp
 weaviate
 lancedb
+src/phages/notebooks/data/
+src/phages/notebooks/storage/
