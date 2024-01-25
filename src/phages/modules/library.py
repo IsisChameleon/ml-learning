@@ -267,7 +267,7 @@ class Library():
         k: int = 10,  # Number of vectors to retrieve
         max_sources: int = 5,  # Number of scored contexts to use
         marginal_relevance: bool = True,
-        detailed_citations: bool = False,
+        detailed_citations: bool = True,
         summarization: bool = True,
     ) -> Answer:
 
@@ -297,6 +297,9 @@ class Library():
                 condition=FilterCondition.OR,
             ) 
 
+        # TODO: Add node postprocessor to get the score of each chunk by llm
+        # add node postprocesor to create a summary for each text chunk relevant to the question
+
         nodes_retriever = self.nodes_index.as_retriever(
             similarity_top_k=k, 
             filters = metadata_filters,
@@ -307,13 +310,30 @@ class Library():
 
         # Node postprocessing
         # -------------------
-        # Optional summarization of each text chunk
+        # Optional summarization of each text chunk relevant to the question
 
         if not(retrieved_nodes is None or len(retrieved_nodes) == 0):
             summary_key = self._find_metadata_summary_key(retrieved_nodes[0].node)
             if summary_key is None and summarization == True:
                 # TODO : add summary for each retrieved_node in the metadata using a node_postprocessor
                 pass
+
+
+        # Sort answer contexts by score (the score given by the summmarization prompt)
+        # cut the contexts down to max_sources
+            
+        #TODO: add a custom NodeWithScore with an additional property llm_score
+            
+        answer.contexts = sorted(
+            retrieved_nodes,
+            key=lambda x: x.get_score(),
+            reverse=True,
+        )[:max_sources]
+
+        # Create context string
+        #
+
+        answer.context = self._get_context_str(answer.contexts)    
 
         # Add chunks to the answer context
         #----------------------------------
@@ -327,3 +347,16 @@ class Library():
             if'summary' in key:
                 return key
         return None
+    
+    def _get_context_str(contexts: List[BaseNode], detailed_citations=True) -> str:
+        #TODO Review the concept of text.name ??? here using node._id
+        context_str = "\n\n".join(
+        [
+            f"{node._id}: {node.text}" +
+            + (f"\n\nBased on {node.metadata['citation']}" if detailed_citations else '' )
+                for node in contexts
+        ])
+
+        valid_names = [node._id for node in contexts]
+        context_str += "\n\nValid keys: " + ", ".join(valid_names)
+        return context_str
