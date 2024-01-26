@@ -68,8 +68,9 @@ class SummaryAndScoreNodePostProcessor(BaseNodePostprocessor):
         for node in nodes:
             new_node = CustomNodeWithScore(node)
             
+            citation = node.node.metadata.get('citation', node.node.metadata.get('file_path', 'No citation available'))
             prompt = self.summary_and_score_prompt \
-                .format(summary_length=self.summary_length, text=node.node.get_content(), citation=node.node.metadata['citation'], question=str(query_bundle))
+                .format(summary_length=self.summary_length, text=node.node.get_content(), citation=citation, question=str(query_bundle))
             print('prompt:', prompt)
             chain = DefaultRefineProgram(prompt, self.service_context.llm, SummaryAndScoreOutput)
             structured_refine_answer = chain()
