@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv("/workspaces/ml-learning/.env", override=True)
 
 import unittest
 from unittest.mock import patch, MagicMock
@@ -11,7 +11,7 @@ class TestLibrary(unittest.TestCase):
 
     def setUp(self):
         # Setup code here (if needed)
-        load_dotenv("/workspaces/ml-learning/.env", override=True)
+        
         self.library = Library()
 
     # @patch('os.path.exists')
