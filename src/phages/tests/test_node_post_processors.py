@@ -1,10 +1,10 @@
 import unittest
-import os
 from dotenv import load_dotenv
 from llama_index.service_context import ServiceContext
 from phages.modules.postprocessor import SummaryAndScoreNodePostProcessor
-from llama_index.schema import NodeWithScore, QueryBundle
-from llama_index.bridge.pydantic import Document
+from llama_index.schema import NodeWithScore, QueryBundle, Document
+
+from phages.modules.schema import CustomNodeWithScore
 
 class TestSummaryAndScoreNodePostProcessor(unittest.TestCase):
     def setUp(self):
