@@ -1,9 +1,11 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import unittest
 from unittest.mock import patch, MagicMock
 from llama_index.schema import NodeWithScore, TextNode
 from phages.modules.library import Library
-from dotenv import load_dotenv
-import os
 
 class TestLibrary(unittest.TestCase):
 
