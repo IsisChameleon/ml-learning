@@ -7,6 +7,9 @@ class CustomNodeWithScore(NodeWithScore):
     """A node with score that holds the semantic search score but also the LLM score."""
 
     llm_score: Optional[float] = None
+
+    def __init__(self, node_with_score: NodeWithScore):
+        super().__init__(node=node_with_score.node, score=node_with_score.score)
     
     def get_score(self, raise_error: bool = False) -> float:
         """Get score."""
