@@ -6,6 +6,7 @@ from pathlib import Path
 from llama_index.embeddings import OpenAIEmbedding
 from llama_index.text_splitter import SentenceSplitter
 from llama_index import SimpleDirectoryReader
+from llama_index.llms import LLM
 from llama_index.extractors import (
     SummaryExtractor,
     QuestionsAnsweredExtractor,
@@ -30,7 +31,6 @@ from llama_index.readers.base import BaseReader
 from llama_index.readers.file.docs_reader import PDFReader
 from llama_index.vector_stores import ChromaVectorStore, WeaviateVectorStore
 from llama_index.indices.vector_store import VectorStoreIndex
-
 from llama_index.storage.storage_context import StorageContext
 from llama_index.postprocessor import SimilarityPostprocessor
 from llama_index.vector_stores.types import (
@@ -44,6 +44,7 @@ from llama_index.vector_stores.types import (
 
 from phages.modules.extractors import get_citation
 from phages.modules.answer import Answer
+from phages.modules.postprocessor import SummaryAndScoreNodePostProcessor
 
 class FullPDFReader(PDFReader):
     """Full PDF parser with default full document return."""
@@ -76,12 +77,16 @@ class Library():
     nodes: List[BaseNode] = []
     docs_index: VectorStoreIndex | None
     nodes_index: VectorStoreIndex | None
+    service_context: ServiceContext = ServiceContext.from_defaults()
 
     # class Config:
     #     arbitrary_types_allowed = True
 
     def __init__(self):
         self._initialize_storage()
+
+    def withLLM(self, llm: LLM):
+        self.service_context.llm = llm
 
     def _initialize_storage(self):
         config = toml.load("../config.toml")
@@ -297,32 +302,24 @@ class Library():
                 condition=FilterCondition.OR,
             ) 
 
-        # TODO: Add node postprocessor to get the score of each chunk by llm
         # add node postprocesor to create a summary for each text chunk relevant to the question
+            
+        node_postprocessors = [SimilarityPostprocessor(similarity_cutoff=0.7)]
+        if summarization == True:
+            node_postprocessors.append(
+                SummaryAndScoreNodePostProcessor(service_context=self.service_context)
+            )
 
         nodes_retriever = self.nodes_index.as_retriever(
             similarity_top_k=k, 
             filters = metadata_filters,
-            node_postprocessors=[SimilarityPostprocessor(similarity_cutoff=0.7)]
+            node_postprocessors=node_postprocessors
         )
 
         retrieved_nodes = nodes_retriever.retrieve(answer.query)
 
-        # Node postprocessing
-        # -------------------
-        # Optional summarization of each text chunk relevant to the question
-
-        if not(retrieved_nodes is None or len(retrieved_nodes) == 0):
-            summary_key = self._find_metadata_summary_key(retrieved_nodes[0].node)
-            if summary_key is None and summarization == True:
-                # TODO : add summary for each retrieved_node in the metadata using a node_postprocessor
-                pass
-
-
         # Sort answer contexts by score (the score given by the summmarization prompt)
         # cut the contexts down to max_sources
-            
-        #TODO: add a custom NodeWithScore with an additional property llm_score
             
         answer.contexts = sorted(
             retrieved_nodes,
@@ -342,21 +339,23 @@ class Library():
 
         return answer
     
-    def _find_metadata_summary_key(self, node: BaseNode) -> Optional[str]:
+    @staticmethod
+    def _find_metadata_summary_key(node: BaseNode) -> Optional[str]:
         for key in node.metadata.keys():
             if'summary' in key:
                 return key
         return None
     
-    def _get_context_str(contexts: List[BaseNode], detailed_citations=True) -> str:
+    @staticmethod
+    def _get_context_str(contexts: List[NodeWithScore], detailed_citations=True) -> str:
         #TODO Review the concept of text.name ??? here using node._id
         context_str = "\n\n".join(
         [
-            f"{node._id}: {node.text}" +
-            + (f"\n\nBased on {node.metadata['citation']}" if detailed_citations else '' )
+            f"{node.node.id_}: {node.node.text}" +
+            + (f"\n\nBased on {node.node.metadata['citation']}" if detailed_citations else '' )
                 for node in contexts
         ])
 
-        valid_names = [node._id for node in contexts]
+        valid_names = [node.id_ for node in contexts]
         context_str += "\n\nValid keys: " + ", ".join(valid_names)
         return context_str
