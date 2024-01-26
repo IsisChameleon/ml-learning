@@ -51,15 +51,22 @@ class TestLibrary(unittest.TestCase):
 
     def test_get_context_str(self):
         # Create a list of NodeWithScore objects with dummy data
-        node1 = NodeWithScore(node=TextNode(text='text1', extra_info={'citation': 'citation1'}), score=0.9)
-        node2 = NodeWithScore(node=TextNode(text='text2', extra_info={'citation': 'citation2'}), score=0.8)
+        node1 = NodeWithScore(node=TextNode(id_=1, text='text1', extra_info={'citation': 'citation1'}), score=0.9)
+        node2 = NodeWithScore(node=TextNode(id_=2, text='text2', extra_info={'citation': 'citation2'}), score=0.8)
         nodes = [node1, node2]
 
         # Call the _get_context_str method
         context_str = Library._get_context_str(nodes)
-
         # Check the returned string
-        expected_str = 'text1: text1\n\nBased on citation1\ntext2: text2\n\nBased on citation2\n\nValid keys: text1, text2'
+        expected_str = """1: text1
+
+Based on citation1
+
+2: text2
+
+Based on citation2
+
+Valid keys: 1, 2"""
         self.assertEqual(context_str, expected_str)
 
 if __name__ == '__main__':
