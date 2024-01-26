@@ -56,7 +56,7 @@ class TestLibrary(unittest.TestCase):
         nodes = [node1, node2]
 
         # Call the _get_context_str method
-        context_str = self.library._get_context_str(nodes)
+        context_str = Library._get_context_str(nodes)
 
         # Check the returned string
         expected_str = 'text1: text1\n\nBased on citation1\ntext2: text2\n\nBased on citation2\n\nValid keys: text1, text2'
