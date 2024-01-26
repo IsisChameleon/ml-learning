@@ -1,5 +1,6 @@
 """Node postprocessor."""
 
+import json
 import logging
 from typing import Dict, List, Optional
 from pydantic import BaseModel
@@ -72,7 +73,7 @@ class SummaryAndScoreNodePostProcessor(BaseNodePostprocessor):
                 .partial_format(summary_length=self.summary_length, text=node.node.get_content(), citation=citation, question=str(query_bundle))
             print('prompt:', prompt)
             chain = DefaultRefineProgram(prompt, self.service_context.llm, SummaryAndScoreOutput)
-            structured_refine_answer = chain()
+            structured_refine_answer = json.loads(chain())
             print('answer:',structured_refine_answer)
             new_nodes.append(new_node)
 
