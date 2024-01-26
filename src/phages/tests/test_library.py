@@ -1,13 +1,14 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from phages.modules.library import Library, SourceType  # Replace 'your_module' with the actual module name
-import os
+from phages.modules.library import Library
+from dotenv import load_dotenv
 
 class TestLibrary(unittest.TestCase):
 
     def setUp(self):
         # Setup code here (if needed)
-        self.library = Library(documents=[])
+        load_dotenv("/workspaces/ml-learning/.env")
+        self.library = Library()
 
     @patch('os.path.exists')
     def test_add_local_file(self, mock_exists):
