@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 load_dotenv("/workspaces/ml-learning/.env", override=True)
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from llama_index.schema import NodeWithScore, TextNode
 from phages.modules.library import Library
 
@@ -68,6 +68,20 @@ Based on citation2
 
 Valid keys: 1, 2"""
         self.assertEqual(context_str, expected_str)
+
+    @patch('llama_index.llms.LLM.predict', new_callable=AsyncMock)
+    def test_ask_llm(self, mock_predict):
+        # Mock the predict method of the LLM object
+        mock_predict.return_value = 'Test answer'
+
+        # Call the _ask_llm method with a test query
+        result = self.library._ask_llm('Test query')
+
+        # Check if the predict method was called with the correct prompt
+        mock_predict.assert_called_once_with(prompt='Test query')
+
+        # Check if the _ask_llm method returned the correct result
+        self.assertEqual(result, 'Test answer')
 
 if __name__ == '__main__':
     unittest.main()
