@@ -352,7 +352,7 @@ class Library():
         context_str = "\n\n".join(
         [
             f"{node.node.id_}: {node.node.text}" +
-            + (f"\n\nBased on {node.node.metadata['citation']}" if detailed_citations else '' )
+            (f"\n\nBased on {node.node.metadata['citation']}" if detailed_citations else '' )
                 for node in contexts
         ])
 
