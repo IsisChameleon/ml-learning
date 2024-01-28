@@ -1,5 +1,15 @@
 from pydantic import validator, ValidationError, BaseModel
 from typing import Set, List, Union, Any, Callable, Dict, Generator, List, Optional, Type, Sequence
+import toml
+import requests
+from urllib.parse import urlparse
+import os
+import logging
+import mimetypes
+import os
+from datetime import datetime
+from pathlib import Path
+
 from llama_index.schema import Document, BaseNode, NodeWithScore, TextNode
 from llama_index import ServiceContext, SimpleDirectoryReader
 from pathlib import Path
@@ -15,18 +25,7 @@ from llama_index.extractors import (
     EntityExtractor
 )
 from llama_index.ingestion import IngestionPipeline
-import toml
-import requests
-from urllib.parse import urlparse
-import os
-import logging
-import mimetypes
-import os
-from datetime import datetime
-from pathlib import Path
-
-import weaviate
-
+from llama_index import get_response_synthesizer
 from llama_index.readers.base import BaseReader
 from llama_index.readers.file.docs_reader import PDFReader
 from llama_index.vector_stores import ChromaVectorStore, WeaviateVectorStore
@@ -42,9 +41,12 @@ from llama_index.vector_stores.types import (
     FilterOperator,
 )
 
+import weaviate
+
 from phages.modules.extractors import get_citation
 from phages.modules.answer import Answer
 from phages.modules.postprocessor import SummaryAndScoreNodePostProcessor
+from phages.modules.prompts import ask_llm_prompt, answer_prompt
 
 class FullPDFReader(PDFReader):
     """Full PDF parser with default full document return."""
@@ -86,7 +88,8 @@ class Library():
         self._initialize_storage()
 
     def withLLM(self, llm: LLM):
-        self.service_context.llm = llm
+        self.service_context = ServiceContext.from_service_context(self.service_context, llm=llm)
+        return self
 
     def _initialize_storage(self):
         config = toml.load("../config.toml")
@@ -107,21 +110,17 @@ class Library():
         # self.chroma_client = chromadb.EphemeralClient()
         docs_vector_store = WeaviateVectorStore(weaviate_client = client, index_name="Docs", text_key="text")
         storage_context = StorageContext.from_defaults(vector_store=docs_vector_store )
-        # self.docs_index = VectorStoreIndex(
-        #     nodes=[TextNode(text='hello world')],
-        #     storage_context = storage_context,
-        #     service_context=ServiceContext.from_defaults(embed_model=OpenAIEmbedding())
-        #     )
+
         self.docs_index = VectorStoreIndex.from_vector_store(
             vector_store=docs_vector_store,
             storage_context = storage_context,
             service_context=ServiceContext.from_defaults(embed_model=OpenAIEmbedding())
             )
 
-        vector_store = WeaviateVectorStore(weaviate_client = client, index_name="Nodes", text_key="text")
-        storage_context = StorageContext.from_defaults(vector_store=vector_store)
-        self.nodes_index = VectorStoreIndex(
-            nodes=[TextNode(text='hello world')],
+        nodes_vector_store = WeaviateVectorStore(weaviate_client = client, index_name="Nodes", text_key="text")
+        storage_context = StorageContext.from_defaults(vector_store=nodes_vector_store)
+        self.nodes_index = VectorStoreIndex.from_vector_store(
+            vector_store=nodes_vector_store,
             storage_context = storage_context,
             service_context=ServiceContext.from_defaults(embed_model=OpenAIEmbedding())
             )
@@ -238,7 +237,43 @@ class Library():
                 marginal_relevance=marginal_relevance
             )
 
+            answer = await self._aget_answer(
+                answer
+            )
+        
+
         return answer
+    
+
+    async def _aget_answer(self, answer: Answer) -> Answer:
+        
+        text_qa_template = answer_prompt.partial_format(answer_length=answer.answer_length, context=answer.context, query=answer.query)
+
+        # response_synthesizer = get_response_synthesizer(
+        #     response_mode="refine",
+        #     service_context=self.service_context,
+        #     text_qa_template=answer_prompt,
+        #     refine_template=None,
+        #     use_async=False,
+        #     streaming=False,
+        # )
+
+        # # asynchronous
+        # response = await response_synthesizer.asynthesize(
+        #     answer.query,
+        #     nodes=answer.contexts,
+        #     additional_source_nodes=None,
+        # )
+
+        answer_text = self.service_context.llm.predict(prompt=text_qa_template)
+
+        #TODO: formatted answer_text
+        #TODO: Bibliography
+
+        answer.answer = answer_text
+
+        return answer
+
 
     async def _adoc_match(
         self,
@@ -318,6 +353,8 @@ class Library():
 
         retrieved_nodes = nodes_retriever.retrieve(answer.query)
 
+        answer.contexts.extend(retrieved_nodes)
+
         # Sort answer contexts by score (the score given by the summmarization prompt)
         # cut the contexts down to max_sources
             
@@ -328,14 +365,9 @@ class Library():
         )[:max_sources]
 
         # Create context string
-        #
+        #----------------------
 
-        answer.context = self._get_context_str(answer.contexts)    
-
-        # Add chunks to the answer context
-        #----------------------------------
-        # TODO: cleanup move answer out of this function and make it return retrieved nodes
-        answer.contexts.extend(retrieved_nodes)
+        answer.context = self._get_context_str(answer.contexts, ask_llm=True, query=answer.query)    
 
         return answer
     
@@ -346,8 +378,7 @@ class Library():
                 return key
         return None
     
-    @staticmethod
-    def _get_context_str(contexts: List[NodeWithScore], detailed_citations=True) -> str:
+    def _get_context_str(self, contexts: List[NodeWithScore], detailed_citations=True, ask_llm = True, query = '') -> str:
         #TODO Review the concept of text.name ??? here using node._id
         context_str = "\n\n".join(
         [
@@ -358,4 +389,13 @@ class Library():
 
         valid_names = [node.id_ for node in contexts]
         context_str += "\n\nValid keys: " + ", ".join(valid_names)
+        if ask_llm == True and query != '':
+            extra_background_information=f'\n\nExtra background information:{self._ask_llm(query)}'
         return context_str
+    
+    def _ask_llm(self, query: str)-> str:
+        prompt_tpl = ask_llm_prompt.partial_format(query=query) 
+
+        answer = self.service_context.llm.predict(prompt=prompt_tpl)
+
+        return answer
