@@ -80,6 +80,7 @@ class Library():
     docs_index: VectorStoreIndex | None
     nodes_index: VectorStoreIndex | None
     service_context: ServiceContext = ServiceContext.from_defaults()
+    client: weaviate.Client | None = None
 
     # class Config:
     #     arbitrary_types_allowed = True
@@ -91,6 +92,10 @@ class Library():
         self.service_context = ServiceContext.from_service_context(self.service_context, llm=llm)
         return self
 
+    def __del__(self):
+        if self.client is not None:
+            self.client.close()
+
     def _initialize_storage(self):
         config = toml.load("../config.toml")
         WEAVIATE_PERSISTENCE_DATA_PATH = config["paths"]["WEAVIATE_PERSISTENCE_DATA_PATH"]
@@ -99,7 +104,7 @@ class Library():
         os.makedirs(WEAVIATE_BINARY_PATH, exist_ok=True)
 
         # connect to your weaviate instance
-        client = weaviate.Client(
+        self.client = weaviate.Client(
             embedded_options=weaviate.embedded.EmbeddedOptions(
                 persistence_data_path=WEAVIATE_PERSISTENCE_DATA_PATH,
                 binary_path=WEAVIATE_BINARY_PATH
