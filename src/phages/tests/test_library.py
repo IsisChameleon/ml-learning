@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch, MagicMock, AsyncMock
 from llama_index.schema import NodeWithScore, TextNode
 from phages.modules.library import Library
+from phages.modules.prompts import ask_llm_prompt
 
 class TestLibrary(unittest.TestCase):
 
@@ -69,19 +70,29 @@ Based on citation2
 Valid keys: 1, 2"""
         self.assertEqual(context_str, expected_str)
 
-    @patch('llama_index.llms.LLM.predict', new_callable=AsyncMock)
+    @patch('llama_index.llms.LLM.predict')
     def test_ask_llm(self, mock_predict):
         # Mock the predict method of the LLM object
         mock_predict.return_value = 'Test answer'
 
         # Call the _ask_llm method with a test query
-        result = self.library._ask_llm('Test query')
+        query = 'Test query'
+        result = self.library._ask_llm(query)
 
         # Check if the predict method was called with the correct prompt
-        mock_predict.assert_called_once_with(prompt='Test query')
+        mock_predict.assert_called_once_with(prompt=ask_llm_prompt.partial_format(query=query))
 
         # Check if the _ask_llm method returned the correct result
         self.assertEqual(result, 'Test answer')
+
+
+    def test_ask_llm_2(self):
+        # Call the _ask_llm method with a test query
+        query = 'What are the bacteriophages(s) that show promising results in aquaculture and food industries and what is the pathogen that each can control?'
+        result = self.library._ask_llm(query)
+        print(f'test_ask_llm_2: \n{query} \n{result}')
+        self.assertEqual(1, 1)
+
 
 if __name__ == '__main__':
     unittest.main()

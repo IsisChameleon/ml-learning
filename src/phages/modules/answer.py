@@ -13,6 +13,6 @@ class Answer(BaseModel):
     context: str = ""
     contexts: List[CustomNodeWithScore] = []
     selected_documents: List[NodeWithScore] = []
-    summary_length: str = "about 100 words"
-    answer_length: str = "about 100 words"
+    summary_length: str = "about 250 words"
+    answer_length: str = "about 250 words"
     memory: Optional[str] = None

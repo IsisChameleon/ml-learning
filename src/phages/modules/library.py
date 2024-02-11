@@ -113,7 +113,7 @@ class Library():
 
 
         # self.chroma_client = chromadb.EphemeralClient()
-        docs_vector_store = WeaviateVectorStore(weaviate_client = client, index_name="Docs", text_key="text")
+        docs_vector_store = WeaviateVectorStore(weaviate_client = self.client, index_name="Docs", text_key="text")
         storage_context = StorageContext.from_defaults(vector_store=docs_vector_store )
 
         self.docs_index = VectorStoreIndex.from_vector_store(
@@ -122,7 +122,7 @@ class Library():
             service_context=ServiceContext.from_defaults(embed_model=OpenAIEmbedding())
             )
 
-        nodes_vector_store = WeaviateVectorStore(weaviate_client = client, index_name="Nodes", text_key="text")
+        nodes_vector_store = WeaviateVectorStore(weaviate_client = self.client, index_name="Nodes", text_key="text")
         storage_context = StorageContext.from_defaults(vector_store=nodes_vector_store)
         self.nodes_index = VectorStoreIndex.from_vector_store(
             vector_store=nodes_vector_store,

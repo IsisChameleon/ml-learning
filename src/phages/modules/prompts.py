@@ -1,12 +1,41 @@
 from llama_index import PromptTemplate
 from llama_index.prompts.prompt_type import PromptType
 
+llm_system_prompt = """Answer in an direct and concise tone, I am in a hurry. Your audience is an expert, so be
+highly specific. If there are ambiguous terms or acronyms, first define them.
+"""
+
+answer_prompt_tpl = """Write an answer {answer_length} for the question below based on the provided context. If
+the context provides insufficient information, reply "I cannot answer". For each part of
+your answer, indicate which sources most support it via valid citation markers at the end
+of sentences, like (Example2012). Answer in an unbiased, comprehensive, and scholarly
+tone. If the question is subjective, provide an opinionated answer in the concluding 1-2
+sentences.
+
+{context}
+
+Query: {query}
+Answer:
+
+"""
+answer_prompt = PromptTemplate(answer_prompt_tpl, prompt_type=PromptType.CUSTOM)
+
+ask_llm_prompt_tpl = """We are collecting background information for the question/task below.
+Provide a brief summary of information you know (about 50 words) that could help answer
+the question - do not answer it directly and ignore formatting instructions. It is ok to
+not answer, if there is nothing to contribute.
+Query: {query}
+"""
+ask_llm_prompt = PromptTemplate(ask_llm_prompt_tpl, prompt_type=PromptType.CUSTOM)
+
+
+
 summary_prompt_tpl = """
 Summarize the text below to help answer a question. 
 Do not directly answer the question, instead summarize to give evidence to help answer the question. 
 Focus on specific details, including numbers, equations, or specific quotes. 
 Reply 'Not applicable' if text is irrelevant. 
-Use {summary_length}. At the end of your response, provide a score from 1-10 on a newline 
+Use {summary_length}. At the end of your response, provide a score from 0 to 1 on a newline 
 indicating relevance to question. Do not explain your score. 
 \n\n
 {text}\n\n
