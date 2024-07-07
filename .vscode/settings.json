@@ -5,7 +5,9 @@
         "./src/phages/modules",
         "/workspaces/ml-learning/src/phages/modules",
         "/workspaces/ml-learning/.venv/lib/python3.11/site-packages",
-        "./src/phages"
+        "./src/phages",
+        "./src/airtable-chatbot",
+        "./src/airtable-chatbot"
     ],
     "python.envFile": "${workspaceFolder}/src/tests/.env",
 

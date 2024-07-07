@@ -1,0 +1,719 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+      "title": "Redactive",
+      "summary": "This is a very custom OpenAPI schema",
+      "description": "# Redactive Operations API\n\nThis API allows users to interact with the Redactive operations plane. Using\nthis API you can do things such as logging in with SSO, creating teams, and\nadding members to those teams.\n\n## Getting Started\n\nTo access this account you must have a Redactive account. You can sign up for\none here.\n\n### Checklist\n\n- Create a team using the\n  [set team](https://dashboard.staging.redactive.ai/api/docs#put-/teams/-team_id-/)\n  API call.\n- Create an app for the team using the\n  [set app](https://dashboard.staging.redactive.ai/api/docs#put-/teams/-team_id-/apps/-app_id-/)\n  API call.\n- Create an API Key for the app using\n  [Regenerate App Key](https://dashboard.staging.redactive.ai/api/docs#post-/teams/-team_id-/apps/-app_id-/keys/-key_id-)\n  API call\n\nOnce these steps are completed your app API key will be able to connect data\nsources for users and get API keys to query data using the SDK or gRPC\nendpoints.\n\n- Create a data source connection for the user using\n  [Begin Connection](https://dashboard.staging.redactive.ai/api/docs#post-/auth/connect/-provider-/url)\n  API call.\n- Take the code from the returned OAuth callback and exchange it for a JWT token\n  with the\n  [Exchange Tokens](https://dashboard.staging.redactive.ai/api/docs#post-/auth/token)\n  API call.\n\nYou can see an example of how to setup and connect to the API in\n[this video](https://drive.google.com/file/d/1H2I74Q-GsC5UQ4b4SrcRM-DB_4vaBpiL/view?usp=sharing).\n\n\u003Ciframe src=\"https://drive.google.com/file/d/1H2I74Q-GsC5UQ4b4SrcRM-DB_4vaBpiL/preview\" width=\"960\" height=\"540\" allow=\"autoplay\"\u003E\u003C/iframe\u003E\n\n# Redactive Data Plane API\n\nThis API allows users to interact with data in their account. The main reason\nfor doing this will be to run semantic queries on data sources. This API is\nbuilt using [gRPC](https://grpc.io/) and can be accessed using our SDKs or by\nusing the gRPC endpoints themselves.\n\n\u003E Install grpcurl from this\n\u003E [GitHub Repo](https://github.com/fullstorydev/grpcurl)\n\nDownload Redactive Protobuf files and save to `protos/`\n\n- [chunks.proto](/resources/protos/chunks.proto)\n- [search.proto](/resources/protos/search.proto)\n\nWith these protobuf files in `protos/`, You can run search command as below.\n\n```bash\nTOKEN=\"YOUR APP TOKEN\"\ngrpcurl \\\n    -H \"Authorization: Bearer ${TOKEN}\" \\\n    -d '{\"query\": {\"semantic_query\": \"test\"}}' \\\n    -import-path ./protos \\\n    -proto grpc.redactive.ai:443 redactive.grpc.v1.Search/QueryChunks\n```\n\nThe current available SDKs can be found below.\n\n- [JavaScript/TypeScript Node](https://www.npmjs.com/package/@redactive/redactive)\n- [Python](https://pypi.org/project/redactive/)\n\n# Troubleshooting\n\n**Why am I getting a 405 - Method Not Allowed Error?**\n\nThe most likely reason you're getting this error is the URL you're using is not\ncorrect, double check that the _http method_ and _url path_ are correct.\n",
+      "version": "v1.4.0.post0+git.b997bd7e.dirty"
+    },
+    "servers": [
+      {
+        "url": "/api"
+      }
+    ],
+    "paths": {
+      "/auth/connect/{provider}/url": {
+        "post": {
+          "tags": [
+            "auth"
+          ],
+          "summary": "Begin Connection",
+          "description": "Get url to begin auth flow",
+          "operationId": "begin_connection_auth_connect__provider__url_post",
+          "security": [
+            {
+              "HTTPBearer": []
+            }
+          ],
+          "parameters": [
+            {
+              "name": "provider",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Provider"
+              }
+            },
+            {
+              "name": "redirect_uri",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "string",
+                "title": "Redirect Uri"
+              }
+            },
+            {
+              "name": "endpoint",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Endpoint"
+              }
+            },
+            {
+              "name": "state",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "State"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "title": "Response Begin Connection Auth Connect  Provider  Url Post"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Request was invalid"
+            },
+            "401": {
+              "description": "Request was missing required authentication"
+            },
+            "403": {
+              "description": "Request was missing required authorization"
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          },
+          "x-code-samples": [
+            {
+              "lang": "bash",
+              "label": "Curl",
+              "source": "curl -X POST https://api.redactive.ai/api/auth/connect/{provider}/url?redirect_uri={example string}&endpoint={example string}&state={example string} \\\n    -H \"Content-Type: application/json\" \\\n    -H \"Authorization: Bearer ${TOKEN}\""
+            },
+            {
+              "lang": "Python",
+              "label": "Python",
+              "source": "import requests\nimport json\n\nurl = \"https://api.redactive.ai/api/auth/connect/{provider}/url?redirect_uri={example string}&endpoint={example string}&state={example string}\"\n\ntoken = \"YOUR APP API TOKEN\"\n\nheaders = {\n    \"Authorization\": f\"Bearer {token}\"\n}\n\nresponse = requests.post(url, headers=headers)\n\nif response.status_code == 400:\n    print(\"Request was invalid\")\nelif response.status_code == 401:\n    print(\"Request was missing required authentication\")\nelif response.status_code == 403:\n    print(\"Request was missing required authorization\")\nelse:\n    print(response.json())"
+            },
+            {
+              "lang": "JavaScript",
+              "label": "JavaScript",
+              "source": "import fetch from \"node-fetch\"\n\nconst token = \"YOUR APP API TOKEN\"\n\nconst url = \"https://api.redactive.ai/api/auth/connect/{provider}/url?redirect_uri={example string}&endpoint={example string}&state={example string}\"\nconst headers = {\n    Authorization: `Bearer ${token}`,\n}\n\n\nasync function main() {\n    const response = await fetch(url, {\n        method: \"POST\",\n        headers,\n    })\n\n    if (response.status !== 400) {\n        console.error(\"Request was invalid\")\n        return\n    } else if (response.status !== 401) {\n        console.error(\"Request was missing required authentication\")\n        return\n    } else if (response.status !== 403) {\n        console.error(\"Request was missing required authorization\")\n        return\n    } else if (response.status !== 422) {\n        console.error(\"Validation Error\")\n        return\n    }\n\n    const data = await response.json()\n}\n\nmain()"
+            }
+          ]
+        }
+      },
+      "/auth/token": {
+        "post": {
+          "tags": [
+            "auth"
+          ],
+          "summary": "Exchange Tokens",
+          "description": "Exchange codes for tokens and refresh existing tokens",
+          "operationId": "exchange_tokens_auth_token_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExchangeTokens"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Tokens"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Request was invalid"
+            },
+            "401": {
+              "description": "Request was missing required authentication"
+            },
+            "403": {
+              "description": "Request was missing required authorization"
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          },
+          "security": [
+            {
+              "HTTPBearer": []
+            }
+          ],
+          "x-code-samples": [
+            {
+              "lang": "bash",
+              "label": "Curl",
+              "source": "curl -X POST https://api.redactive.ai/api/auth/token \\\n    -d '{\n        \"code\": \"example string\",\n        \"refresh_token\": \"example string\"\n    }' \\\n    -H \"Content-Type: application/json\" \\\n    -H \"Authorization: Bearer ${TOKEN}\""
+            },
+            {
+              "lang": "Python",
+              "label": "Python",
+              "source": "import requests\nimport json\n\nurl = \"https://api.redactive.ai/api/auth/token\"\nbody = {\n    \"code\": \"example string\",\n    \"refresh_token\": \"example string\"\n}\n\ntoken = \"YOUR APP API TOKEN\"\n\nheaders = {\n    \"Authorization\": f\"Bearer {token}\"\n}\n\nresponse = requests.post(url, headers=headers, json=body)\n\nif response.status_code == 400:\n    print(\"Request was invalid\")\nelif response.status_code == 401:\n    print(\"Request was missing required authentication\")\nelif response.status_code == 403:\n    print(\"Request was missing required authorization\")\nelse:\n    print(response.json())"
+            },
+            {
+              "lang": "JavaScript",
+              "label": "JavaScript",
+              "source": "import fetch from \"node-fetch\"\n\nconst token = \"YOUR APP API TOKEN\"\n\nconst url = \"https://api.redactive.ai/api/auth/token\"\nconst headers = {\n    Authorization: `Bearer ${token}`,\n    \"Content-Type\": \"application/json\"\n}\n\nconst body = {'code': 'example string', 'refresh_token': 'example string'}\n\nasync function main() {\n    const response = await fetch(url, {\n        method: \"POST\",\n        headers,\n        body: JSON.stringify(body)\n    })\n\n    if (response.status !== 400) {\n        console.error(\"Request was invalid\")\n        return\n    } else if (response.status !== 401) {\n        console.error(\"Request was missing required authentication\")\n        return\n    } else if (response.status !== 403) {\n        console.error(\"Request was missing required authorization\")\n        return\n    } else if (response.status !== 422) {\n        console.error(\"Validation Error\")\n        return\n    }\n\n    const data = await response.json()\n}\n\nmain()"
+            }
+          ]
+        }
+      },
+      "/auth/connections": {
+        "get": {
+          "tags": [
+            "auth"
+          ],
+          "summary": "Get Data Connections",
+          "description": "Query what data sources a user is currently connected with",
+          "operationId": "get_data_connections_auth_connections_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/DataConnections"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Request was invalid"
+            },
+            "401": {
+              "description": "Request was missing required authentication"
+            },
+            "403": {
+              "description": "Request was missing required authorization"
+            }
+          },
+          "security": [
+            {
+              "HTTPBearer": []
+            }
+          ],
+          "x-code-samples": [
+            {
+              "lang": "bash",
+              "label": "Curl",
+              "source": "curl -X GET https://api.redactive.ai/api/auth/connections \\\n    -H \"Content-Type: application/json\" \\\n    -H \"Authorization: Bearer ${TOKEN}\""
+            },
+            {
+              "lang": "Python",
+              "label": "Python",
+              "source": "import requests\nimport json\n\nurl = \"https://api.redactive.ai/api/auth/connections\"\n\ntoken = \"YOUR APP API TOKEN\"\n\nheaders = {\n    \"Authorization\": f\"Bearer {token}\"\n}\n\nresponse = requests.get(url, headers=headers)\n\nif response.status_code == 400:\n    print(\"Request was invalid\")\nelif response.status_code == 401:\n    print(\"Request was missing required authentication\")\nelif response.status_code == 403:\n    print(\"Request was missing required authorization\")\nelse:\n    print(response.json())"
+            },
+            {
+              "lang": "JavaScript",
+              "label": "JavaScript",
+              "source": "import fetch from \"node-fetch\"\n\nconst token = \"YOUR APP API TOKEN\"\n\nconst url = \"https://api.redactive.ai/api/auth/connections\"\nconst headers = {\n    Authorization: `Bearer ${token}`,\n}\n\n\nasync function main() {\n    const response = await fetch(url, {\n        method: \"GET\",\n        headers,\n    })\n\n    if (response.status !== 400) {\n        console.error(\"Request was invalid\")\n        return\n    } else if (response.status !== 401) {\n        console.error(\"Request was missing required authentication\")\n        return\n    } else if (response.status !== 403) {\n        console.error(\"Request was missing required authorization\")\n        return\n    } else if (response.status !== 422) {\n        console.error(\"Validation Error\")\n        return\n    }\n\n    const data = await response.json()\n}\n\nmain()"
+            }
+          ]
+        }
+      },
+      "/v1.Search/QueryChunks": {
+        "post": {
+          "tags": [
+            "data-plane"
+          ],
+          "summary": "Query Chunks",
+          "description": "Query the index for relevant chunks",
+          "operationId": "query_chunks_v1_Search_QueryChunks_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryRequest"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/QueryResponse"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Request was invalid"
+            },
+            "401": {
+              "description": "Request was missing required authentication"
+            },
+            "403": {
+              "description": "Request was missing required authorization"
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          },
+          "x-code-samples": [
+            {
+              "lang": "bash",
+              "label": "Curl",
+              "source": "grpcurl \\\n    -d '{\n        \"count\": 123,\n        \"query\": {\n            \"semantic_query\": \"example string\"\n        },\n        \"filters\": {\n            \"scope\": [\n                \"example string\"\n            ],\n            \"created\": {\n                \"after\": \"2024-12-31T12:34:56Z\",\n                \"before\": \"2024-12-31T12:34:56Z\"\n            },\n            \"modified\": {\n                \"after\": \"2024-12-31T12:34:56Z\",\n                \"before\": \"2024-12-31T12:34:56Z\"\n            },\n            \"user_emails\": [\n                \"example string\"\n            ]\n        }\n    }' \\\n    -H \"Authorization: Bearer ${TOKEN}\" \\\n    grpc.redactive.ai:443 redactive.grpc.v1.Search/QueryChunks"
+            },
+            {
+              "lang": "Python",
+              "label": "Python",
+              "source": "import asyncio\nfrom pprint import pprint\n\nimport redactive\n\n\nasync def query_chunks(client: redactive.Client):\n    data = {\n        \"count\": 123,\n        \"query\": {\n            \"semantic_query\": \"example string\"\n        },\n        \"filters\": {\n            \"scope\": [\n                \"example string\"\n            ],\n            \"created\": {\n                \"after\": \"2024-12-31T12:34:56Z\",\n                \"before\": \"2024-12-31T12:34:56Z\"\n            },\n            \"modified\": {\n                \"after\": \"2024-12-31T12:34:56Z\",\n                \"before\": \"2024-12-31T12:34:56Z\"\n            },\n            \"user_emails\": [\n                \"example string\"\n            ]\n        }\n    }\n    chunks = await client.query_chunks(data)\n    pprint(chunks)\n\n\nif __name__ == \"__main__\":\n    client = redactive.Client(\"your-credential\")\n\n    asyncio.run(query_chunks(client))"
+            },
+            {
+              "lang": "JavaScript",
+              "label": "JavaScript",
+              "source": "import { RedactiveClient } from \"@redactive/redactive\"\n\nconst credentials = \"YOUR APP API TOKEN\"\n\nconst client = new RedactiveClient({ credentials })\n\nasync function main() {\n    const data = \n    const response = await client.queryChunks(data)\n    console.log({response})\n}\n\nmain()"
+            }
+          ]
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "ChunkReference": {
+          "properties": {
+            "chunking_version": {
+              "type": "string",
+              "title": "Chunking Version",
+              "description": "Version of chunking implementation e.g. 1.0.0. Can be used to ensure determinism"
+            },
+            "chunk_id": {
+              "type": "string",
+              "title": "Chunk Id",
+              "description": "Chunk id is unique within the document, but not globally unique.\n            It's value depends on the chunking implementation version"
+            },
+            "chunk_hash": {
+              "type": "string",
+              "title": "Chunk Hash",
+              "description": "SHA256 hash of the chunk body"
+            }
+          },
+          "type": "object",
+          "required": [
+            "chunking_version",
+            "chunk_id",
+            "chunk_hash"
+          ],
+          "title": "ChunkReference",
+          "description": "A reference to some chunk within a document. This is the base unit of data returned from Redactive"
+        },
+        "DataConnections": {
+          "properties": {
+            "user_id": {
+              "type": "string",
+              "title": "User Id"
+            },
+            "current_connections": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "title": "Current Connections",
+              "default": []
+            }
+          },
+          "type": "object",
+          "required": [
+            "user_id"
+          ],
+          "title": "DataConnections"
+        },
+        "ExchangeTokens": {
+          "properties": {
+            "code": {
+              "type": "string",
+              "title": "Code"
+            },
+            "refresh_token": {
+              "type": "string",
+              "title": "Refresh Token"
+            }
+          },
+          "type": "object",
+          "title": "ExchangeTokens"
+        },
+        "HTTPValidationError": {
+          "properties": {
+            "detail": {
+              "items": {
+                "$ref": "#/components/schemas/ValidationError"
+              },
+              "type": "array",
+              "title": "Detail"
+            }
+          },
+          "type": "object",
+          "title": "HTTPValidationError"
+        },
+        "Query": {
+          "properties": {
+            "semantic_query": {
+              "type": "string",
+              "title": "Semantic Query",
+              "description": "Semantic query to execute"
+            }
+          },
+          "type": "object",
+          "required": [
+            "semantic_query"
+          ],
+          "title": "Query",
+          "description": "The query object will be expanded with hybrid search functionality in the future"
+        },
+        "QueryFilters": {
+          "properties": {
+            "scope": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "title": "Scope",
+              "description": "Scope of query responses",
+              "examples": [
+                "confluence",
+                "slack://channel-name",
+                "google-drive://CompanyDrive/document.docx"
+              ]
+            },
+            "created": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Timespan"
+                }
+              ],
+              "description": "Timespan of response chunk's creation"
+            },
+            "modified": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Timespan"
+                }
+              ],
+              "description": "Timespan of response chunk's last modification"
+            },
+            "user_emails": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "title": "User Emails",
+              "description": "List of user emails associated with response chunk"
+            }
+          },
+          "type": "object",
+          "title": "QueryFilters"
+        },
+        "QueryRequest": {
+          "properties": {
+            "count": {
+              "type": "integer",
+              "title": "Count",
+              "description": "How many results to try to return (maximum number of results)",
+              "default": 1
+            },
+            "query": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Query"
+                }
+              ],
+              "description": "Query to search for"
+            },
+            "filters": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/QueryFilters"
+                }
+              ],
+              "description": "Filters on query responses"
+            }
+          },
+          "type": "object",
+          "required": [
+            "query"
+          ],
+          "title": "QueryRequest"
+        },
+        "QueryResponse": {
+          "properties": {
+            "success": {
+              "type": "boolean",
+              "title": "Success",
+              "description": "Whether query was successful"
+            },
+            "error": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object",
+              "title": "Error",
+              "description": "Error details if query failed"
+            },
+            "relevant_chunks": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/RelevantChunk"
+                }
+              ],
+              "description": "Chunks relevant to query if query successful"
+            }
+          },
+          "type": "object",
+          "required": [
+            "success",
+            "error",
+            "relevant_chunks"
+          ],
+          "title": "QueryResponse"
+        },
+        "Relevance": {
+          "properties": {
+            "similarity_score": {
+              "type": "number",
+              "title": "Similarity Score",
+              "description": "Similarity score of the chunk"
+            }
+          },
+          "type": "object",
+          "required": [
+            "similarity_score"
+          ],
+          "title": "Relevance"
+        },
+        "RelevantChunk": {
+          "properties": {
+            "source": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/SourceReference"
+                }
+              ],
+              "description": "Source reference of the document"
+            },
+            "chunk": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ChunkReference"
+                }
+              ],
+              "description": "Chunk reference of the chunk"
+            },
+            "relevance": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Relevance"
+                }
+              ],
+              "description": "Relevance of the chunk to the given query"
+            },
+            "chunk_body": {
+              "type": "string",
+              "title": "Chunk Body",
+              "description": "Chunk body (text content)"
+            },
+            "document_metadata": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object",
+              "title": "Document Metadata",
+              "description": "Document metadata from the chunks source document"
+            }
+          },
+          "type": "object",
+          "required": [
+            "source",
+            "chunk",
+            "relevance",
+            "chunk_body",
+            "document_metadata"
+          ],
+          "title": "RelevantChunk",
+          "description": "A chunk is a part of a document's content, designed to be given to an LLM.\nRelevantChunk contains information about how Relevant a chunk is to a given query."
+        },
+        "SourceReference": {
+          "properties": {
+            "system": {
+              "type": "string",
+              "title": "System",
+              "description": "Source system of the document e.g. confluence or slack"
+            },
+            "system_version": {
+              "type": "string",
+              "title": "System Version",
+              "description": "Semantic version of system and redactive system integration component.\n            Can be used to ensure determinism"
+            },
+            "connection_id": {
+              "type": "string",
+              "title": "Connection Id",
+              "description": "Connection id to the source system e.g. confluence space id or slack workspace id"
+            },
+            "document_id": {
+              "type": "string",
+              "title": "Document Id",
+              "description": "Document id in the source system e.g. confluence page id or slack message id"
+            },
+            "document_version": {
+              "type": "string",
+              "title": "Document Version",
+              "description": "Document version as in the source system e.g. confluence page version,\n            slack message version"
+            }
+          },
+          "type": "object",
+          "required": [
+            "system",
+            "system_version",
+            "connection_id",
+            "document_id",
+            "document_version"
+          ],
+          "title": "SourceReference",
+          "description": "A reference to some document in a source system.\nNote documents have different meanings depending on source, eg a confluence page, and a slack message"
+        },
+        "Timespan": {
+          "properties": {
+            "after": {
+              "type": "string",
+              "format": "date-time",
+              "title": "After",
+              "description": "Greater than timestamp",
+              "examples": [
+                "2020-01-01T00:00:00Z"
+              ]
+            },
+            "before": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Before",
+              "description": "Less than or equal to timestamp",
+              "examples": [
+                "2024-12-31T23:59:59Z"
+              ]
+            }
+          },
+          "type": "object",
+          "title": "Timespan"
+        },
+        "Tokens": {
+          "properties": {
+            "idToken": {
+              "type": "string",
+              "title": "Idtoken"
+            },
+            "refreshToken": {
+              "type": "string",
+              "title": "Refreshtoken"
+            },
+            "expiresIn": {
+              "type": "string",
+              "title": "Expiresin"
+            }
+          },
+          "type": "object",
+          "required": [
+            "idToken",
+            "refreshToken",
+            "expiresIn"
+          ],
+          "title": "Tokens"
+        },
+        "ValidationError": {
+          "properties": {
+            "loc": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ]
+              },
+              "type": "array",
+              "title": "Location"
+            },
+            "msg": {
+              "type": "string",
+              "title": "Message"
+            },
+            "type": {
+              "type": "string",
+              "title": "Error Type"
+            }
+          },
+          "type": "object",
+          "required": [
+            "loc",
+            "msg",
+            "type"
+          ],
+          "title": "ValidationError"
+        }
+      },
+      "securitySchemes": {
+        "HTTPBearer": {
+          "type": "http",
+          "scheme": "bearer"
+        }
+      }
+    }
+  }
